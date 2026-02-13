@@ -1,0 +1,639 @@
+"""
+Heart Disease Prediction System
+Interactive Streamlit Web Application
+
+Features:
+1. CSV file upload for test data
+2. Model selection dropdown (6 models)
+3. Display of evaluation metrics
+4. Confusion matrix visualization
+5. Classification report
+"""
+
+import streamlit as st
+import pandas as pd
+import numpy as np
+import joblib
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import (
+    accuracy_score, roc_auc_score, precision_score,
+    recall_score, f1_score, matthews_corrcoef,
+    confusion_matrix, classification_report
+)
+import os
+
+# Page configuration
+st.set_page_config(
+    page_title="Heart Disease Prediction",
+    page_icon="💙",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Custom CSS for clean blue and red theme
+st.markdown("""
+    <style>
+    /* Main background */
+    .main {
+        background: linear-gradient(135deg, #f5f7fa 0%, #e8f0f7 100%);
+    }
+    
+    /* Main header */
+    .main-header {
+        font-size: 15rem;
+        font-weight: 800;
+        color: white;
+        text-align: center;
+        margin-bottom: 1rem;
+        text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+        letter-spacing: -0.5px;
+        line-height: 1.1;
+    }
+    
+    /* Sub-header */
+    .sub-header {
+        font-size: 15rem;
+        color: white;
+        text-align: center;
+        margin-bottom: 3rem;
+        font-weight: 600;
+        text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+        letter-spacing: 0.5px;
+        line-height: 1.2;
+    }
+    
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
+        color: white;
+    }
+    
+    /* Info boxes */
+    .info-box {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        border-left: 4px solid #3b82f6;
+        color: #1e293b;
+    }
+    
+    .success-box {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        border-left: 4px solid #10b981;
+        color: #1e293b;
+    }
+    
+    .warning-box {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin: 1rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        border-left: 4px solid #ef4444;
+        color: #1e293b;
+    }
+    
+    /* Button styling */
+    .stButton>button {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.7rem 2rem;
+        font-weight: 600;
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        transition: all 0.3s ease;
+    }
+    
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
+    }
+    
+    /* Metrics display */
+    [data-testid="stMetricValue"] {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: white;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        color: white;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    /* Info box text */
+    .info-box {
+        font-size: 1.1rem;
+    }
+    
+    .info-box h3 {
+        font-size: 1.5rem;
+    }
+    
+    .success-box {
+        font-size: 1.1rem;
+    }
+    
+    .warning-box {
+        font-size: 1.1rem;
+    }
+    
+    /* Upload area */
+    [data-testid="stFileUploader"] {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        border: 2px dashed #3b82f6;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* Download button */
+    .stDownloadButton > button {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        color: white !important;
+        font-weight: 600 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 0.6rem 1rem !important;
+        box-shadow: 0 4px 6px rgba(239, 68, 68, 0.2) !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stDownloadButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(239, 68, 68, 0.3) !important;
+    }
+    
+    /* Selectbox */
+    [data-baseweb="select"] {
+        background: white;
+        border-radius: 8px;
+    }
+    
+    /* Divider */
+    hr {
+        border: none;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #cbd5e1, transparent);
+        margin: 2rem 0;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Title and description
+st.markdown('<p class="main-header">Heart Disease Prediction System</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">AI-Powered Cardiac Risk Assessment</p>', unsafe_allow_html=True)
+
+st.markdown("""
+<div class="info-box">
+    <h3 style="margin-top:0; color:#1e40af;">How to Use This Application</h3>
+    <ol style="line-height: 2; color:#334155; font-size:1.1rem;">
+        <li><strong style="color:#2563eb;">Upload CSV file:</strong> Upload your test dataset in CSV format</li>
+        <li><strong style="color:#2563eb;">Select Model:</strong> Choose from 6 different AI classification models</li>
+        <li><strong style="color:#2563eb;">View Results:</strong> Examine detailed metrics, confusion matrix, and classification report</li>
+    </ol>
+    <p style="margin-bottom:0; color:#334155; font-size:1.05rem;"><strong style="color:#dc2626;">Dataset Requirements:</strong> CSV must contain 13 features: age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal, and target</p>
+</div>
+""", unsafe_allow_html=True)
+
+# Sidebar for model selection and file upload
+st.sidebar.markdown("""
+<div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
+           padding: 1.8rem 1rem; border-radius: 16px; margin-bottom: 2rem; 
+           box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
+    <h1 style="color: white; margin: 0; font-size: 2rem; font-weight: 700; 
+               text-align: center; letter-spacing: 0.5px;">
+        Control Panel
+    </h1>
+    <p style="color: #e0e7ff; margin: 0.5rem 0 0 0; font-size: 1.05rem; 
+              text-align: center; font-weight: 500;">
+        Select model and upload data
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+# Model selection
+model_options = {
+    'Logistic Regression': 'model/logistic_regression.pkl',
+    'Decision Tree': 'model/decision_tree.pkl',
+    'K-Nearest Neighbors': 'model/k_nearest_neighbors.pkl',
+    'Naive Bayes': 'model/naive_bayes.pkl',
+    'Random Forest': 'model/random_forest.pkl',
+    'XGBoost': 'model/xgboost.pkl'
+}
+
+# Model Selection Section
+st.sidebar.markdown("""
+<h3 style="color: white; margin: 0 0 0.8rem 0; font-size: 1.3rem; font-weight: 600;">
+    Select Model
+</h3>
+<p style="color: #e0e7ff; font-size: 0.95rem; margin: 0 0 1.5rem 0;">
+    Choose prediction algorithm
+</p>
+""", unsafe_allow_html=True)
+
+selected_model_name = st.sidebar.selectbox(
+    "Model Selection",
+    list(model_options.keys()),
+    help="Choose which model to use for predictions",
+    label_visibility="collapsed"
+)
+
+# File Upload Section
+st.sidebar.markdown("""
+<h3 style="color: white; margin: 0 0 0.8rem 0; font-size: 1.3rem; font-weight: 600;">
+    Upload Data
+</h3>
+<p style="color: #e0e7ff; font-size: 0.95rem; margin: 0 0 1.5rem 0;">
+    CSV format required
+</p>
+""", unsafe_allow_html=True)
+
+uploaded_file = st.sidebar.file_uploader(
+    "Upload CSV",
+    type=['csv'],
+    help="Upload a CSV file containing test data with features and target column",
+    label_visibility="collapsed"
+)
+
+# Sample data download button
+st.sidebar.markdown("""
+<p style="color: white; font-size: 0.95rem; margin: 1rem 0 0.5rem 0; font-weight: 500;">
+    Need sample data?
+</p>
+""", unsafe_allow_html=True)
+
+# Load sample data for download
+try:
+    with open('data/test_data.csv', 'rb') as f:
+        sample_data = f.read()
+    
+    st.sidebar.download_button(
+        label="Download Sample Test Data",
+        data=sample_data,
+        file_name="heart_disease_sample.csv",
+        mime="text/csv",
+        help="Download a sample test dataset to try the application",
+        use_container_width=True
+    )
+except FileNotFoundError:
+    st.sidebar.info("Sample data not available")
+
+# About Section
+st.sidebar.markdown("""
+<div style="background: rgba(255, 255, 255, 0.08); 
+           padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem; 
+           border: 1px solid rgba(255, 255, 255, 0.15);">
+    <h3 style="color: white; margin: 0 0 1rem 0; font-size: 1.3rem; font-weight: 600;">
+        About
+    </h3>
+    <p style="color: #e0e7ff; font-size: 0.95rem; line-height: 1.6; margin-bottom: 1rem;">
+        ML classification system with 6 algorithms trained on UCI Heart Disease dataset.
+    </p>
+    <div style="background: rgba(0, 0, 0, 0.2); padding: 1rem; border-radius: 8px; 
+                border-left: 3px solid #60a5fa;">
+        <p style="font-weight: 600; margin: 0 0 0.8rem 0; color: white; font-size: 1.05rem;">
+            6 Models Available
+        </p>
+        <div style="display: grid; gap: 0.4rem;">
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
+                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <span style="color: #e0e7ff; font-size: 0.95rem;">Logistic Regression</span>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
+                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <span style="color: #e0e7ff; font-size: 0.95rem;">Decision Tree</span>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
+                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <span style="color: #e0e7ff; font-size: 0.95rem;">K-Nearest Neighbors</span>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
+                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <span style="color: #e0e7ff; font-size: 0.95rem;">Naive Bayes</span>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
+                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <span style="color: #e0e7ff; font-size: 0.95rem;">Random Forest</span>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
+                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <span style="color: #e0e7ff; font-size: 0.95rem;">XGBoost</span>
+            </div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Main content
+if uploaded_file is not None:
+    try:
+        # Load the uploaded data
+        df = pd.read_csv(uploaded_file)
+        
+        st.markdown(f"""
+        <div class="success-box">
+            <strong style="font-size: 1.1rem;">File Uploaded Successfully!</strong><br>
+            <span style="font-size: 1.05rem;">Dataset shape: {df.shape[0]} rows × {df.shape[1]} columns</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Display first few rows
+        with st.expander("View Uploaded Data (First 10 rows)", expanded=False):
+            st.dataframe(df.head(10), use_container_width=True)
+        
+        # Check if target column exists
+        if 'target' not in df.columns:
+            st.markdown("""
+            <div class="warning-box">
+                <strong style="font-size: 1.1rem;">Error:</strong> <span style="font-size: 1.05rem;">'target' column not found in the uploaded CSV file!</span>
+            </div>
+            """, unsafe_allow_html=True)
+            st.stop()
+        
+        # Separate features and target
+        X_test = df.drop('target', axis=1)
+        y_test = df['target']
+        
+        # Validate number of features
+        expected_features = 13
+        if X_test.shape[1] != expected_features:
+            st.markdown(f"""
+            <div class="warning-box">
+                <strong style="font-size: 1.1rem;">Warning:</strong> <span style="font-size: 1.05rem;">Expected {expected_features} features, but found {X_test.shape[1]}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Load the selected model
+        model_path = model_options[selected_model_name]
+        
+        if not os.path.exists(model_path):
+            st.markdown(f"""
+            <div class="warning-box">
+                <strong style="font-size: 1.1rem;">Model Not Found:</strong> {model_path}<br>
+                <span style="font-size: 1.05rem;">Please ensure models are trained first by running the Jupyter notebook.</span>
+            </div>
+            """, unsafe_allow_html=True)
+            st.stop()
+        
+        model = joblib.load(model_path)
+        
+        # Load scaler if needed (for Logistic Regression and KNN)
+        if selected_model_name in ['Logistic Regression', 'K-Nearest Neighbors']:
+            scaler_path = 'model/scaler.pkl'
+            if os.path.exists(scaler_path):
+                scaler = joblib.load(scaler_path)
+                X_test_processed = scaler.transform(X_test)
+            else:
+                st.warning("Scaler not found. Using unscaled data.")
+                X_test_processed = X_test
+        else:
+            X_test_processed = X_test
+        
+        # Make predictions
+        y_pred = model.predict(X_test_processed)
+        y_pred_proba = model.predict_proba(X_test_processed)[:, 1]
+        
+        st.markdown(f"""
+        <div class="success-box">
+            <strong style="font-size: 1.1rem;">Predictions Complete!</strong><br>
+            <span style="font-size: 1.05rem;">Using <strong>{selected_model_name}</strong> model</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Calculate metrics
+        st.markdown("""
+        <div style="text-align: center; margin: 2rem 0 1rem 0;">
+            <h2 style="color: white; 
+                       font-size: 2.2rem; font-weight: 700;">
+                Evaluation Metrics
+            </h2>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        metrics = {
+            'Accuracy': accuracy_score(y_test, y_pred),
+            'AUC Score': roc_auc_score(y_test, y_pred_proba),
+            'Precision': precision_score(y_test, y_pred, zero_division=0),
+            'Recall': recall_score(y_test, y_pred, zero_division=0),
+            'F1 Score': f1_score(y_test, y_pred, zero_division=0),
+            'MCC': matthews_corrcoef(y_test, y_pred)
+        }
+        
+        # Display metrics in columns
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Accuracy", f"{metrics['Accuracy']:.4f}")
+            st.metric("AUC Score", f"{metrics['AUC Score']:.4f}")
+        
+        with col2:
+            st.metric("Precision", f"{metrics['Precision']:.4f}")
+            st.metric("Recall", f"{metrics['Recall']:.4f}")
+        
+        with col3:
+            st.metric("F1 Score", f"{metrics['F1 Score']:.4f}")
+            st.metric("MCC", f"{metrics['MCC']:.4f}")
+        
+        # Metrics table
+        st.markdown("""
+        <h3 style="color: white; 
+                   font-weight: 600; margin-top: 2rem; font-size: 1.5rem;">
+            Detailed Metrics
+        </h3>
+        """, unsafe_allow_html=True)
+        metrics_df = pd.DataFrame([metrics])
+        st.dataframe(
+            metrics_df.style.format("{:.4f}").background_gradient(cmap='Blues', axis=1),
+            use_container_width=True
+        )
+        
+        # Confusion Matrix
+        st.markdown("""
+        <div style="text-align: center; margin: 3rem 0 1rem 0;">
+            <h2 style="color: white; 
+                       font-size: 2.2rem; font-weight: 700;">
+                Confusion Matrix
+            </h2>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        cm = confusion_matrix(y_test, y_pred)
+        
+        fig, ax = plt.subplots(figsize=(10, 7))
+        
+        # Use blue color palette
+        sns.heatmap(
+            cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=['No Disease', 'Disease'],
+            yticklabels=['No Disease', 'Disease'],
+            cbar_kws={'label': 'Count'},
+            ax=ax,
+            linewidths=2,
+            linecolor='#1e40af',
+            annot_kws={'size': 16, 'weight': 'bold', 'color': '#1e293b'}
+        )
+        ax.set_xlabel('Predicted Label', fontsize=14, fontweight='bold', color='#1e40af')
+        ax.set_ylabel('True Label', fontsize=14, fontweight='bold', color='#1e40af')
+        ax.set_title(f'Confusion Matrix - {selected_model_name}', 
+                    fontsize=16, fontweight='bold', pad=20, color='#1e40af')
+        
+        # Set background color to light
+        fig.patch.set_facecolor('#f8fafc')
+        ax.set_facecolor('#ffffff')
+        ax.tick_params(colors='#475569')
+        ax.xaxis.label.set_color('#1e40af')
+        ax.yaxis.label.set_color('#1e40af')
+        ax.title.set_color('#1e40af')
+        
+        st.pyplot(fig)
+        
+        # Classification Report
+        st.markdown("""
+        <div style="text-align: center; margin: 3rem 0 1rem 0;">
+            <h2 style="color: white; 
+                       font-size: 2.2rem; font-weight: 700;">
+                Classification Report
+            </h2>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        report = classification_report(y_test, y_pred, target_names=['No Disease', 'Disease'])
+        st.markdown(f"""
+        <div style="background: white;
+                    padding: 1.5rem; border-radius: 12px; border-left: 4px solid #3b82f6;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+            <pre style="color: black; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 0;">{report}</pre>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Additional insights
+        st.markdown("""
+        <div style="text-align: center; margin: 3rem 0 1rem 0;">
+            <h2 style="color: white; 
+                       font-size: 2.2rem; font-weight: 700;">
+                Prediction Insights
+            </h2>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown(f"""
+            <div class="success-box">
+                <strong>Correct Predictions</strong><br><br>
+                True Positives (Disease Correctly Identified): <strong>{cm[1, 1]}</strong><br>
+                True Negatives (No Disease Correctly Identified): <strong>{cm[0, 0]}</strong>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown(f"""
+            <div class="warning-box">
+                <strong>Incorrect Predictions</strong><br><br>
+                False Positives (Incorrectly Predicted Disease): <strong>{cm[0, 1]}</strong><br>
+                False Negatives (Missed Disease Cases): <strong>{cm[1, 0]}</strong>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Prediction distribution
+        st.markdown("""
+        <h3 style="color: white; 
+                   font-weight: 600; margin-top: 2rem;">
+            Prediction Distribution
+        </h3>
+        """, unsafe_allow_html=True)
+        
+        pred_counts = pd.Series(y_pred).value_counts()
+        
+        fig, ax = plt.subplots(figsize=(10, 6))
+        colors = ['#3b82f6', '#ef4444']
+        bars = pred_counts.plot(kind='bar', color=colors, ax=ax, edgecolor='#1e40af', linewidth=2)
+        ax.set_xlabel('Prediction', fontsize=14, fontweight='bold', color='#1e40af')
+        ax.set_ylabel('Count', fontsize=14, fontweight='bold', color='#1e40af')
+        ax.set_title('Distribution of Predictions', fontsize=16, fontweight='bold', pad=20, color='#1e40af')
+        ax.set_xticklabels(['No Disease', 'Disease'], rotation=0, fontsize=12, color='#475569')
+        ax.grid(axis='y', alpha=0.2, linestyle='--', color='#cbd5e1')
+        ax.set_facecolor('#ffffff')
+        fig.patch.set_facecolor('#f8fafc')
+        ax.tick_params(colors='#475569')
+        ax.spines['bottom'].set_color('#cbd5e1')
+        ax.spines['left'].set_color('#cbd5e1')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        
+        # Add value labels on bars
+        for i, v in enumerate(pred_counts):
+            ax.text(i, v + 0.5, str(v), ha='center', fontweight='bold', fontsize=14, color='#1e293b')
+        
+        st.pyplot(fig)
+        
+    except Exception as e:
+        st.markdown(f"""
+        <div class="warning-box">
+            <strong>An Error Occurred:</strong><br>
+            {str(e)}<br><br>
+            Please ensure your CSV file is properly formatted and contains all required columns.
+        </div>
+        """, unsafe_allow_html=True)
+
+else:
+    # Show placeholder when no file is uploaded
+    st.markdown("""
+    <div class="info-box" style="margin-top: 3rem;">
+        <h3 style="margin-top: 0; color: #1e40af;">Getting Started</h3>
+        <p style="font-size: 1.1rem; color: #475569; margin-bottom: 1rem;">
+            Ready to analyze heart disease predictions? Follow these steps:
+        </p>
+        <ol style="font-size: 1rem; color: #334155; line-height: 2;">
+            <li><strong style="color: #2563eb;">Download Sample Data:</strong> Click the download button in the sidebar</li>
+            <li><strong style="color: #2563eb;">Upload CSV:</strong> Upload the sample file using the file uploader</li>
+            <li><strong style="color: #2563eb;">Select Model:</strong> Choose from 6 AI models</li>
+            <li><strong style="color: #2563eb;">View Results:</strong> Analyze detailed metrics and visualizations</li>
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div style="background: white; padding: 2rem; border-radius: 12px; 
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); margin-top: 2rem; 
+                border-left: 4px solid #3b82f6;">
+        <h3 style="color: #1e40af; margin-top: 0;">Sample Data Format</h3>
+        <p style="color: #475569;">Your CSV file should have the following columns:</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    
+    | Column | Description | Type |
+    |--------|-------------|------|
+    | age | Age in years | Integer |
+    | sex | Sex (1 = male, 0 = female) | Binary |
+    | cp | Chest pain type (0-3) | Integer |
+    | trestbps | Resting blood pressure (mm Hg) | Integer |
+    | chol | Serum cholesterol (mg/dl) | Integer |
+    | fbs | Fasting blood sugar > 120 mg/dl | Binary |
+    | restecg | Resting ECG results (0-2) | Integer |
+    | thalach | Maximum heart rate achieved | Integer |
+    | exang | Exercise induced angina | Binary |
+    | oldpeak | ST depression | Float |
+    | slope | Slope of peak exercise ST segment | Integer |
+    | ca | Number of major vessels (0-3) | Integer |
+    | thal | Thalassemia (1-3) | Integer |
+    | target | Disease presence (0 or 1) | Binary |
+    
+    **Tip:** Use the **"Download Sample Test Data"** button in the sidebar to get a ready-to-use sample dataset with 61 test records!
+    """)
