@@ -1,0 +1,7 @@
+Model,Observation
+Logistic Regression,Good performance with 83.33% accuracy. High precision (84.62%) indicates fewer false positives. MCC of 0.665 shows strong correlation.
+Decision Tree,Moderate performance with 70.00% accuracy. High precision (69.23%) indicates fewer false positives. MCC of 0.396 shows moderate correlation.
+K-Nearest Neighbors,Very Good performance with 88.33% accuracy. High precision (92.00%) indicates fewer false positives. MCC of 0.768 shows strong correlation.
+Naive Bayes,Very Good performance with 88.33% accuracy. High precision (88.89%) indicates fewer false positives. MCC of 0.765 shows strong correlation.
+Random Forest,Good performance with 85.00% accuracy. High precision (88.00%) indicates fewer false positives. MCC of 0.700 shows strong correlation.
+XGBoost,Very Good performance with 86.67% accuracy. High precision (88.46%) indicates fewer false positives. MCC of 0.733 shows strong correlation.
