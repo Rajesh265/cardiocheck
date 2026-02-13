@@ -505,17 +505,148 @@ if uploaded_file is not None:
         <div style="text-align: center; margin: 3rem 0 1rem 0;">
             <h2 style="color: white; 
                        font-size: 2.2rem; font-weight: 700;">
-                Classification Report
+                📊 Classification Report
             </h2>
         </div>
         """, unsafe_allow_html=True)
         
-        report = classification_report(y_test, y_pred, target_names=['No Disease', 'Disease'])
-        st.markdown(f"""
-        <div style="background: white;
-                    padding: 1.5rem; border-radius: 12px; border-left: 4px solid #3b82f6;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
-            <pre style="color: black; font-family: 'Courier New', monospace; font-size: 0.9rem; margin: 0;">{report}</pre>
+        # Get classification report as dictionary
+        from sklearn.metrics import classification_report
+        report_dict = classification_report(y_test, y_pred, target_names=['No Disease', 'Disease'], output_dict=True)
+        
+        # Create a styled dataframe
+        report_df = pd.DataFrame({
+            'Class': ['No Disease', 'Disease', 'Macro Avg', 'Weighted Avg'],
+            'Precision': [
+                report_dict['No Disease']['precision'],
+                report_dict['Disease']['precision'],
+                report_dict['macro avg']['precision'],
+                report_dict['weighted avg']['precision']
+            ],
+            'Recall': [
+                report_dict['No Disease']['recall'],
+                report_dict['Disease']['recall'],
+                report_dict['macro avg']['recall'],
+                report_dict['weighted avg']['recall']
+            ],
+            'F1-Score': [
+                report_dict['No Disease']['f1-score'],
+                report_dict['Disease']['f1-score'],
+                report_dict['macro avg']['f1-score'],
+                report_dict['weighted avg']['f1-score']
+            ],
+            'Support': [
+                int(report_dict['No Disease']['support']),
+                int(report_dict['Disease']['support']),
+                int(report_dict['macro avg']['support']),
+                int(report_dict['weighted avg']['support'])
+            ]
+        })
+        
+        # Display as HTML table with custom styling
+        st.markdown("""
+        <style>
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .report-table thead {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+        .report-table th {
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .report-table td {
+            padding: 0.9rem;
+            text-align: center;
+            border-bottom: 1px solid #e5e7eb;
+            color: #1e293b;
+            font-size: 0.95rem;
+        }
+        .report-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        .report-table .class-col {
+            font-weight: 600;
+            text-align: left;
+            color: #1e40af;
+        }
+        .report-table .avg-row {
+            background-color: #f1f5f9;
+            font-weight: 600;
+        }
+        .report-table .metric-good {
+            color: #059669;
+            font-weight: 600;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        html_table = f"""
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Class</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1-Score</th>
+                    <th>Support</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="class-col">🟢 No Disease</td>
+                    <td class="metric-good">{report_dict['No Disease']['precision']:.2f}</td>
+                    <td class="metric-good">{report_dict['No Disease']['recall']:.2f}</td>
+                    <td class="metric-good">{report_dict['No Disease']['f1-score']:.2f}</td>
+                    <td>{int(report_dict['No Disease']['support'])}</td>
+                </tr>
+                <tr>
+                    <td class="class-col">🔴 Disease</td>
+                    <td class="metric-good">{report_dict['Disease']['precision']:.2f}</td>
+                    <td class="metric-good">{report_dict['Disease']['recall']:.2f}</td>
+                    <td class="metric-good">{report_dict['Disease']['f1-score']:.2f}</td>
+                    <td>{int(report_dict['Disease']['support'])}</td>
+                </tr>
+                <tr class="avg-row">
+                    <td class="class-col">📈 Macro Avg</td>
+                    <td>{report_dict['macro avg']['precision']:.2f}</td>
+                    <td>{report_dict['macro avg']['recall']:.2f}</td>
+                    <td>{report_dict['macro avg']['f1-score']:.2f}</td>
+                    <td>{int(report_dict['macro avg']['support'])}</td>
+                </tr>
+                <tr class="avg-row">
+                    <td class="class-col">⚖️ Weighted Avg</td>
+                    <td>{report_dict['weighted avg']['precision']:.2f}</td>
+                    <td>{report_dict['weighted avg']['recall']:.2f}</td>
+                    <td>{report_dict['weighted avg']['f1-score']:.2f}</td>
+                    <td>{int(report_dict['weighted avg']['support'])}</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        
+        st.markdown(html_table, unsafe_allow_html=True)
+        
+        # Add metric explanations
+        st.markdown("""
+        <div style="background: white; padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem; 
+                    border-left: 4px solid #8b5cf6; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+            <h4 style="color: #1e293b; margin: 0 0 1rem 0;">📖 Metrics Explained:</h4>
+            <div style="color: #475569; line-height: 1.8;">
+                <strong style="color: #3b82f6;">Precision:</strong> Of all predicted positives, how many were correct? (Accuracy of positive predictions)<br>
+                <strong style="color: #3b82f6;">Recall:</strong> Of all actual positives, how many did we catch? (Coverage of actual cases)<br>
+                <strong style="color: #3b82f6;">F1-Score:</strong> Harmonic mean of precision and recall (Balanced performance metric)<br>
+                <strong style="color: #3b82f6;">Support:</strong> Number of actual samples in each class
+            </div>
         </div>
         """, unsafe_allow_html=True)
         
