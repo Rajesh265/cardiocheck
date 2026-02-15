@@ -3,5 +3,5 @@ Logistic Regression,Moderate performance with 71.34% accuracy. High precision (7
 Decision Tree,Moderate performance with 62.61% accuracy. High precision (62.90%) indicates fewer false positives. MCC of 0.252 shows moderate correlation.
 K-Nearest Neighbors,Moderate performance with 64.42% accuracy. High precision (64.84%) indicates fewer false positives. MCC of 0.288 shows moderate correlation.
 Naive Bayes,Moderate performance with 58.94% accuracy. High precision (71.33%) indicates fewer false positives. MCC of 0.220 shows moderate correlation.
-Random Forest,Moderate performance with 70.65% accuracy. High precision (70.96%) indicates fewer false positives. MCC of 0.413 shows moderate correlation.
+Random Forest,Moderate performance with 73.01% accuracy. High precision (74.90%) indicates fewer false positives. MCC of 0.462 shows moderate correlation.
 XGBoost,Moderate performance with 73.26% accuracy. High precision (75.05%) indicates fewer false positives. MCC of 0.466 shows moderate correlation.
