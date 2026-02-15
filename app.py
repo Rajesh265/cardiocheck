@@ -13,7 +13,7 @@ Features:
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
+import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import (
@@ -204,7 +204,7 @@ st.markdown("""
         <li><strong style="color:#2563eb;">Select Model:</strong> Choose from 6 different AI classification models</li>
         <li><strong style="color:#2563eb;">View Results:</strong> Examine detailed metrics, confusion matrix, and classification report</li>
     </ol>
-    <p style="margin-bottom:0; color:#334155; font-size:1.05rem;"><strong style="color:#dc2626;">Dataset Requirements:</strong> CSV must contain 13 features: age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal, and target</p>
+    <p style="margin-bottom:0; color:#334155; font-size:1.05rem;"><strong style="color:#dc2626;">Dataset Requirements:</strong> CSV must contain 12 features: age, gender, height, weight, ap_hi, ap_lo, cholesterol, gluc, smoke, alco, active, and cardio</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -292,50 +292,17 @@ except FileNotFoundError:
     st.sidebar.info("Sample data not available")
 
 # About Section
+st.sidebar.markdown("### About")
+st.sidebar.markdown("ML classification system with 6 algorithms trained on Cardiovascular Disease dataset.")
 st.sidebar.markdown("""
-<div style="background: rgba(255, 255, 255, 0.08); 
-           padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem; 
-           border: 1px solid rgba(255, 255, 255, 0.15);">
-    <h3 style="color: white; margin: 0 0 1rem 0; font-size: 1.3rem; font-weight: 600;">
-        About
-    </h3>
-    <p style="color: #e0e7ff; font-size: 0.95rem; line-height: 1.6; margin-bottom: 1rem;">
-        ML classification system with 6 algorithms trained on UCI Heart Disease dataset.
-    </p>
-    <div style="background: rgba(0, 0, 0, 0.2); padding: 1rem; border-radius: 8px; 
-                border-left: 3px solid #60a5fa;">
-        <p style="font-weight: 600; margin: 0 0 0.8rem 0; color: white; font-size: 1.05rem;">
-            6 Models Available
-        </p>
-        <div style="display: grid; gap: 0.4rem;">
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">Logistic Regression</span>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">Decision Tree</span>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">K-Nearest Neighbors</span>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">Naive Bayes</span>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">Random Forest</span>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">XGBoost</span>
-            </div>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+**6 Models Available:**
+- Logistic Regression
+- Decision Tree
+- K-Nearest Neighbors
+- Naive Bayes
+- Random Forest
+- XGBoost
+""")
 
 # Main content
 if uploaded_file is not None:
@@ -354,21 +321,21 @@ if uploaded_file is not None:
         with st.expander("View Uploaded Data (First 10 rows)", expanded=False):
             st.dataframe(df.head(10), use_container_width=True)
         
-        # Check if target column exists
-        if 'target' not in df.columns:
+        # Check if cardio column exists
+        if 'cardio' not in df.columns:
             st.markdown("""
             <div class="warning-box">
-                <strong style="font-size: 1.1rem;">Error:</strong> <span style="font-size: 1.05rem;">'target' column not found in the uploaded CSV file!</span>
+                <strong style="font-size: 1.1rem;">Error:</strong> <span style="font-size: 1.05rem;">'cardio' column not found in the uploaded CSV file!</span>
             </div>
             """, unsafe_allow_html=True)
             st.stop()
         
         # Separate features and target
-        X_test = df.drop('target', axis=1)
-        y_test = df['target']
+        X_test = df.drop('cardio', axis=1)
+        y_test = df['cardio']
         
         # Validate number of features
-        expected_features = 13
+        expected_features = 11
         if X_test.shape[1] != expected_features:
             st.markdown(f"""
             <div class="warning-box">
@@ -388,13 +355,15 @@ if uploaded_file is not None:
             """, unsafe_allow_html=True)
             st.stop()
         
-        model = joblib.load(model_path)
+        with open(model_path, 'rb') as f:
+            model = pickle.load(f)
         
         # Load scaler if needed (for Logistic Regression and KNN)
         if selected_model_name in ['Logistic Regression', 'K-Nearest Neighbors']:
             scaler_path = 'model/scaler.pkl'
             if os.path.exists(scaler_path):
-                scaler = joblib.load(scaler_path)
+                with open(scaler_path, 'rb') as f:
+                    scaler = pickle.load(f)
                 X_test_processed = scaler.transform(X_test)
             else:
                 st.warning("Scaler not found. Using unscaled data.")
@@ -621,19 +590,17 @@ else:
     | Column | Description | Type |
     |--------|-------------|------|
     | age | Age in years | Integer |
-    | sex | Sex (1 = male, 0 = female) | Binary |
-    | cp | Chest pain type (0-3) | Integer |
-    | trestbps | Resting blood pressure (mm Hg) | Integer |
-    | chol | Serum cholesterol (mg/dl) | Integer |
-    | fbs | Fasting blood sugar > 120 mg/dl | Binary |
-    | restecg | Resting ECG results (0-2) | Integer |
-    | thalach | Maximum heart rate achieved | Integer |
-    | exang | Exercise induced angina | Binary |
-    | oldpeak | ST depression | Float |
-    | slope | Slope of peak exercise ST segment | Integer |
-    | ca | Number of major vessels (0-3) | Integer |
-    | thal | Thalassemia (1-3) | Integer |
-    | target | Disease presence (0 or 1) | Binary |
+    | gender | Gender (1=female, 2=male) | Binary |
+    | height | Height in cm | Integer |
+    | weight | Weight in kg | Float |
+    | ap_hi | Systolic blood pressure | Integer |
+    | ap_lo | Diastolic blood pressure | Integer |
+    | cholesterol | Cholesterol (1=normal, 2=above, 3=well above) | Categorical |
+    | gluc | Glucose (1=normal, 2=above, 3=well above) | Categorical |
+    | smoke | Smoking status (0=no, 1=yes) | Binary |
+    | alco | Alcohol intake (0=no, 1=yes) | Binary |
+    | active | Physical activity (0=no, 1=yes) | Binary |
+    | cardio | Disease presence (0=no, 1=yes) | Binary |
     
-    **Tip:** Use the **"Download Sample Test Data"** button in the sidebar to get a ready-to-use sample dataset with 61 test records!
+    **Tip:** Use the **"Download Sample Test Data"** button in the sidebar to get a ready-to-use sample dataset!
     """)

@@ -1,34 +1,25 @@
 """
-Heart Disease Prediction System
-Interactive Streamlit Web Application
-
-Features:
-1. CSV file upload for test data
-2. Model selection dropdown (6 models)
-3. Display of evaluation metrics
-4. Confusion matrix visualization
-5. Classification report
+Cardiovascular Disease Prediction - Streamlit Web Application
+Features: Model selection, metrics display, confusion matrix, dataset upload
 """
 
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
+import pickle
+import os
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import (
-    accuracy_score, roc_auc_score, precision_score,
-    recall_score, f1_score, matthews_corrcoef,
-    confusion_matrix, classification_report
-)
-import os
+from sklearn.metrics import (accuracy_score, roc_auc_score, precision_score,
+                             recall_score, f1_score, matthews_corrcoef,
+                             confusion_matrix, classification_report)
+import plotly.graph_objects as go
+import plotly.express as px
 
 # Page configuration
 st.set_page_config(
-    page_title="Heart Disease Prediction",
-    page_icon="💙",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Cardiovascular Disease Prediction",
+    layout="wide"
 )
 
 # Custom CSS for clean blue and red theme
@@ -193,38 +184,23 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title and description
-st.markdown('<p class="main-header">Heart Disease Prediction System</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">AI-Powered Cardiac Risk Assessment</p>', unsafe_allow_html=True)
+st.title("Cardiovascular Disease Prediction System")
 
 st.markdown("""
 <div class="info-box">
-    <h3 style="margin-top:0; color:#1e40af;">How to Use This Application</h3>
-    <ol style="line-height: 2; color:#334155; font-size:1.1rem;">
-        <li><strong style="color:#2563eb;">Upload CSV file:</strong> Upload your test dataset in CSV format</li>
-        <li><strong style="color:#2563eb;">Select Model:</strong> Choose from 6 different AI classification models</li>
-        <li><strong style="color:#2563eb;">View Results:</strong> Examine detailed metrics, confusion matrix, and classification report</li>
-    </ol>
-    <p style="margin-bottom:0; color:#334155; font-size:1.05rem;"><strong style="color:#dc2626;">Dataset Requirements:</strong> CSV must contain 13 features: age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal, and target</p>
+### How to Use
+1. Upload your test dataset in CSV format
+2. Select a classification model from the dropdown
+3. View evaluation metrics, confusion matrix, and classification report
+
+**Dataset Requirements:** CSV must contain 12 features: age, gender, height, weight, ap_hi, ap_lo, cholesterol, gluc, smoke, alco, active, and cardio
 </div>
 """, unsafe_allow_html=True)
 
 # Sidebar for model selection and file upload
-st.sidebar.markdown("""
-<div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); 
-           padding: 1.8rem 1rem; border-radius: 16px; margin-bottom: 2rem; 
-           box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);">
-    <h1 style="color: white; margin: 0; font-size: 2rem; font-weight: 700; 
-               text-align: center; letter-spacing: 0.5px;">
-        Control Panel
-    </h1>
-    <p style="color: #e0e7ff; margin: 0.5rem 0 0 0; font-size: 1.05rem; 
-              text-align: center; font-weight: 500;">
-        Select model and upload data
-    </p>
-</div>
-""", unsafe_allow_html=True)
+st.sidebar.header("Configuration")
 
-# Model selection
+# Model paths
 model_options = {
     'Logistic Regression': 'model/logistic_regression.pkl',
     'Decision Tree': 'model/decision_tree.pkl',
@@ -235,14 +211,7 @@ model_options = {
 }
 
 # Model Selection Section
-st.sidebar.markdown("""
-<h3 style="color: white; margin: 0 0 0.8rem 0; font-size: 1.3rem; font-weight: 600;">
-    Select Model
-</h3>
-<p style="color: #e0e7ff; font-size: 0.95rem; margin: 0 0 1.5rem 0;">
-    Choose prediction algorithm
-</p>
-""", unsafe_allow_html=True)
+st.sidebar.subheader("Select Model")
 
 selected_model_name = st.sidebar.selectbox(
     "Model Selection",
@@ -252,19 +221,12 @@ selected_model_name = st.sidebar.selectbox(
 )
 
 # File Upload Section
-st.sidebar.markdown("""
-<h3 style="color: white; margin: 0 0 0.8rem 0; font-size: 1.3rem; font-weight: 600;">
-    Upload Data
-</h3>
-<p style="color: #e0e7ff; font-size: 0.95rem; margin: 0 0 1.5rem 0;">
-    CSV format required
-</p>
-""", unsafe_allow_html=True)
+st.sidebar.subheader("Upload Data")
 
 uploaded_file = st.sidebar.file_uploader(
     "Upload CSV",
     type=['csv'],
-    help="Upload a CSV file containing test data with features and target column",
+    help="Upload a CSV file containing test data with features and cardio column",
     label_visibility="collapsed"
 )
 
@@ -292,50 +254,17 @@ except FileNotFoundError:
     st.sidebar.info("Sample data not available")
 
 # About Section
+st.sidebar.markdown("### About")
+st.sidebar.markdown("ML classification system with 6 algorithms trained on Cardiovascular Disease dataset.")
 st.sidebar.markdown("""
-<div style="background: rgba(255, 255, 255, 0.08); 
-           padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem; 
-           border: 1px solid rgba(255, 255, 255, 0.15);">
-    <h3 style="color: white; margin: 0 0 1rem 0; font-size: 1.3rem; font-weight: 600;">
-        About
-    </h3>
-    <p style="color: #e0e7ff; font-size: 0.95rem; line-height: 1.6; margin-bottom: 1rem;">
-        ML classification system with 6 algorithms trained on UCI Heart Disease dataset.
-    </p>
-    <div style="background: rgba(0, 0, 0, 0.2); padding: 1rem; border-radius: 8px; 
-                border-left: 3px solid #60a5fa;">
-        <p style="font-weight: 600; margin: 0 0 0.8rem 0; color: white; font-size: 1.05rem;">
-            6 Models Available
-        </p>
-        <div style="display: grid; gap: 0.4rem;">
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">Logistic Regression</span>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">Decision Tree</span>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">K-Nearest Neighbors</span>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">Naive Bayes</span>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">Random Forest</span>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.7rem; 
-                        border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="color: #e0e7ff; font-size: 0.95rem;">XGBoost</span>
-            </div>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+**6 Models Available:**
+- Logistic Regression
+- Decision Tree
+- K-Nearest Neighbors
+- Naive Bayes
+- Random Forest
+- XGBoost
+""")
 
 # Main content
 if uploaded_file is not None:
@@ -354,21 +283,21 @@ if uploaded_file is not None:
         with st.expander("View Uploaded Data (First 10 rows)", expanded=False):
             st.dataframe(df.head(10), use_container_width=True)
         
-        # Check if target column exists
-        if 'target' not in df.columns:
+        # Check if cardio column exists
+        if 'cardio' not in df.columns:
             st.markdown("""
             <div class="warning-box">
-                <strong style="font-size: 1.1rem;">Error:</strong> <span style="font-size: 1.05rem;">'target' column not found in the uploaded CSV file!</span>
+                <strong style="font-size: 1.1rem;">Error:</strong> <span style="font-size: 1.05rem;">'cardio' column not found in the uploaded CSV file!</span>
             </div>
             """, unsafe_allow_html=True)
             st.stop()
         
         # Separate features and target
-        X_test = df.drop('target', axis=1)
-        y_test = df['target']
+        X_test = df.drop('cardio', axis=1)
+        y_test = df['cardio']
         
         # Validate number of features
-        expected_features = 13
+        expected_features = 11
         if X_test.shape[1] != expected_features:
             st.markdown(f"""
             <div class="warning-box">
@@ -388,13 +317,15 @@ if uploaded_file is not None:
             """, unsafe_allow_html=True)
             st.stop()
         
-        model = joblib.load(model_path)
+        with open(model_path, 'rb') as f:
+            model = pickle.load(f)
         
         # Load scaler if needed (for Logistic Regression and KNN)
         if selected_model_name in ['Logistic Regression', 'K-Nearest Neighbors']:
             scaler_path = 'model/scaler.pkl'
             if os.path.exists(scaler_path):
-                scaler = joblib.load(scaler_path)
+                with open(scaler_path, 'rb') as f:
+                    scaler = pickle.load(f)
                 X_test_processed = scaler.transform(X_test)
             else:
                 st.warning("Scaler not found. Using unscaled data.")
@@ -501,14 +432,7 @@ if uploaded_file is not None:
         st.pyplot(fig)
         
         # Classification Report
-        st.markdown("""
-        <div style="text-align: center; margin: 3rem 0 1rem 0;">
-            <h2 style="color: white; 
-                       font-size: 2.2rem; font-weight: 700;">
-                📊 Classification Report
-            </h2>
-        </div>
-        """, unsafe_allow_html=True)
+        st.subheader("Classification Report")
         
         # Get classification report as dictionary
         from sklearn.metrics import classification_report
@@ -603,28 +527,28 @@ if uploaded_file is not None:
             </thead>
             <tbody>
                 <tr>
-                    <td class="class-col">🟢 No Disease</td>
+                    <td class="class-col">No Disease</td>
                     <td class="metric-good">{report_dict['No Disease']['precision']:.2f}</td>
                     <td class="metric-good">{report_dict['No Disease']['recall']:.2f}</td>
                     <td class="metric-good">{report_dict['No Disease']['f1-score']:.2f}</td>
                     <td>{int(report_dict['No Disease']['support'])}</td>
                 </tr>
                 <tr>
-                    <td class="class-col">🔴 Disease</td>
+                    <td class="class-col">Disease</td>
                     <td class="metric-good">{report_dict['Disease']['precision']:.2f}</td>
                     <td class="metric-good">{report_dict['Disease']['recall']:.2f}</td>
                     <td class="metric-good">{report_dict['Disease']['f1-score']:.2f}</td>
                     <td>{int(report_dict['Disease']['support'])}</td>
                 </tr>
                 <tr class="avg-row">
-                    <td class="class-col">📈 Macro Avg</td>
+                    <td class="class-col">Macro Avg</td>
                     <td>{report_dict['macro avg']['precision']:.2f}</td>
                     <td>{report_dict['macro avg']['recall']:.2f}</td>
                     <td>{report_dict['macro avg']['f1-score']:.2f}</td>
                     <td>{int(report_dict['macro avg']['support'])}</td>
                 </tr>
                 <tr class="avg-row">
-                    <td class="class-col">⚖️ Weighted Avg</td>
+                    <td class="class-col">Weighted Avg</td>
                     <td>{report_dict['weighted avg']['precision']:.2f}</td>
                     <td>{report_dict['weighted avg']['recall']:.2f}</td>
                     <td>{report_dict['weighted avg']['f1-score']:.2f}</td>
@@ -752,19 +676,17 @@ else:
     | Column | Description | Type |
     |--------|-------------|------|
     | age | Age in years | Integer |
-    | sex | Sex (1 = male, 0 = female) | Binary |
-    | cp | Chest pain type (0-3) | Integer |
-    | trestbps | Resting blood pressure (mm Hg) | Integer |
-    | chol | Serum cholesterol (mg/dl) | Integer |
-    | fbs | Fasting blood sugar > 120 mg/dl | Binary |
-    | restecg | Resting ECG results (0-2) | Integer |
-    | thalach | Maximum heart rate achieved | Integer |
-    | exang | Exercise induced angina | Binary |
-    | oldpeak | ST depression | Float |
-    | slope | Slope of peak exercise ST segment | Integer |
-    | ca | Number of major vessels (0-3) | Integer |
-    | thal | Thalassemia (1-3) | Integer |
-    | target | Disease presence (0 or 1) | Binary |
+    | gender | Gender (1=female, 2=male) | Binary |
+    | height | Height in cm | Integer |
+    | weight | Weight in kg | Float |
+    | ap_hi | Systolic blood pressure | Integer |
+    | ap_lo | Diastolic blood pressure | Integer |
+    | cholesterol | Cholesterol (1=normal, 2=above, 3=well above) | Categorical |
+    | gluc | Glucose (1=normal, 2=above, 3=well above) | Categorical |
+    | smoke | Smoking status (0=no, 1=yes) | Binary |
+    | alco | Alcohol intake (0=no, 1=yes) | Binary |
+    | active | Physical activity (0=no, 1=yes) | Binary |
+    | cardio | Disease presence (0=no, 1=yes) | Binary |
     
-    **Tip:** Use the **"Download Sample Test Data"** button in the sidebar to get a ready-to-use sample dataset with 61 test records!
+    **Tip:** Use the **"Download Sample Test Data"** button in the sidebar to get a ready-to-use sample dataset!
     """)
