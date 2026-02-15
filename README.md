@@ -8,10 +8,12 @@ This project implements a binary classification system to predict the presence o
 
 After training and evaluating 6 machine learning models on 70,000 patient records:
 
-- **Best Model:** XGBoost with 73.26% accuracy and 0.7957 AUC
+- **Best Model:** XGBoost with 73.26% accuracy and 0.4663 MCC
+- **Highest AUC:** Random Forest with 0.7964 AUC (optimized with 20 trees)
 - **Total Models Evaluated:** 6 (Logistic Regression, Decision Tree, KNN, Naive Bayes, Random Forest, XGBoost)
 - **Total Metrics Calculated:** 6 per model (Accuracy, AUC, Precision, Recall, F1, MCC)
 - **Dataset Split:** 80% training (56,000 instances), 20% testing (14,000 instances)
+- **Model Size:** All models optimized for deployment (<25MB, total ~15MB)
 
 ## Dataset Description
 
@@ -61,10 +63,11 @@ Six classification models will be implemented and evaluated on the Cardiovascula
 | Decision Tree | 62.61% | 0.6283 | 62.90% | 61.35% | 62.12% | 0.2522 |
 | K-Nearest Neighbors | 64.42% | 0.6851 | 64.84% | 62.94% | 63.87% | 0.2885 |
 | Naive Bayes | 58.94% | 0.6850 | 71.33% | 29.83% | 42.07% | 0.2195 |
-| Random Forest | 70.65% | 0.7605 | 70.96% | 69.85% | 70.40% | 0.4130 |
-| XGBoost | **73.26%** | **0.7957** | **75.05%** | 69.63% | **72.24%** | **0.4663** |
+| Random Forest | **73.01%** | **0.7964** | **74.90%** | 69.18% | **71.93%** | 0.4616 |
+| XGBoost | **73.26%** | 0.7957 | **75.05%** | **69.63%** | **72.24%** | **0.4663** |
 
-**Best Overall Model:** XGBoost (highest accuracy, AUC, precision, F1, and MCC)
+**Best Overall Model:** XGBoost (highest accuracy, precision, recall, F1, and MCC)
+**Highest AUC:** Random Forest (0.7964)
 
 ---
 
@@ -76,15 +79,17 @@ Six classification models will be implemented and evaluated on the Cardiovascula
 | Decision Tree | Moderate performance with 62.61% accuracy. High precision (62.90%) indicates fewer false positives. MCC of 0.252 shows moderate correlation. |
 | K-Nearest Neighbors | Moderate performance with 64.42% accuracy. High precision (64.84%) indicates fewer false positives. MCC of 0.288 shows moderate correlation. |
 | Naive Bayes | Moderate performance with 58.94% accuracy. High precision (71.33%) indicates fewer false positives. MCC of 0.220 shows moderate correlation. |
-| Random Forest | Moderate performance with 70.65% accuracy. High precision (70.96%) indicates fewer false positives. MCC of 0.413 shows moderate correlation. |
+| Random Forest | Moderate performance with 73.01% accuracy. High precision (74.90%) indicates fewer false positives. MCC of 0.462 shows moderate correlation. Optimized with 20 trees for deployment efficiency. |
 | XGBoost | Moderate performance with 73.26% accuracy. High precision (75.05%) indicates fewer false positives. MCC of 0.466 shows moderate correlation. |
 
 ### Key Findings:
-- **XGBoost** achieved the best overall performance across most metrics (73.26% accuracy, 0.7957 AUC)
-- **Random Forest** had the highest recall (69.85%), making it best at identifying positive cases
+- **XGBoost** achieved the best overall performance across most metrics (73.26% accuracy, 0.4663 MCC)
+- **Random Forest** achieved the highest AUC (0.7964) while using only 20 trees for efficient deployment
+- **XGBoost** had the highest recall (69.63%), making it best at identifying positive cases
 - **Naive Bayes** showed the lowest performance (58.94% accuracy) with very low recall (29.83%)
 - All models demonstrate moderate correlation (MCC between 0.22-0.47) indicating room for improvement
 - Precision is consistently higher than recall across models, suggesting they are conservative in predicting disease
+- Optimized Random Forest reduced file size from 246MB to 5.6MB with improved performance
 
 ---
 
